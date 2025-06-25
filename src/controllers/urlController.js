@@ -3,13 +3,21 @@ import { findOriginalUrl } from '../models/urlModel.js';
 import { saveUrl } from '../models/urlModel.js';
 
 export async function shortenUrl(req, res) {
-    const { originalUrl, expiresAt } = req.body;
+    const { originalUrl, expiresAt, customAlias } = req.body;
 
     if (!originalUrl || !originalUrl.startsWith('http')) {
         return res.status(400).json({ error: 'Geçerli bir URL giriniz' });
     }
 
-    const shortCode = generateShortCode();
+    const shortCode = customAlias || generateShortCode();
+
+    // Eğer customAlias varsa, çakışma var mı kontrol et
+    if (customAlias) {
+        const existing = await findOriginalUrl(customAlias);
+        if (existing) {
+            return res.status(409).json({ error: 'Bu custom alias zaten kullanılıyor' });
+        }
+    }
 
     try {
         const saved = await saveUrl({ originalUrl, shortCode, expiresAt });
